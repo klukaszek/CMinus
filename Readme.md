@@ -8,7 +8,6 @@
 To compile the project type in the following command.
 
 `bash
-
 make
 `
 
