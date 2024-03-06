@@ -17,24 +17,20 @@ This will generate the following:
 
 To test the scanner:
 
-`bash
-java Scanner < file.cm`
+`java Scanner < file.cm`
 
 To test the C Minus parser:
 
-`bash
-java CM file.cm [-a: print AST]`
+`java CM file.cm [-a: print AST]`
 
 The -a flag prints an AST
 
 To redirect the output:
 
-`bash
-java CM file.cm -a > output.txt`
+`java CM file.cm -a > output.txt`
 
 To remove the files:
-`bash
-make clean`
+`make clean`
 
 ### Documentation
 
