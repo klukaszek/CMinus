@@ -2,7 +2,7 @@ JAVA=java
 JAVAC=javac
 JFLEX=jflex
 CLASSPATH=-cp /usr/share/java/cup.jar:.
-CUP=cup
+CUP=$(JAVA) $(CLASSPATH) java_cup.Main
 
 all:  CM.class
 
