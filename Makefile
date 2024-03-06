@@ -5,6 +5,8 @@ CUP=cup
 
 all: absyn/*.java parser.java sym.java Scanner.class CM.class
 
+Absyn.class: absyn/*.java
+
 #Main.class: absyn/*.java parser.java sym.java Lexer.java ShowTreeVisitor.java Scanner.java Main.java
 
 Scanner.class: Lexer.java ShowTreeVisitor.java Scanner.java
