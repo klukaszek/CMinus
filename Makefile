@@ -2,7 +2,7 @@ JAVA=java
 JAVAC=javac
 JFLEX=jflex
 CLASSPATH=-cp /usr/share/java/cup.jar:.
-CUP=cup $(CLASSPATH)
+CUP=cup
 
 all: absyn/*.java parser.java sym.java CM.class
 
