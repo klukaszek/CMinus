@@ -3,7 +3,7 @@ JAVAC=javac
 JFLEX=jflex
 CUP=cup
 
-all: absyn/*.java parser.java sym.java CM.class
+all: absyn/*.java parser.java sym.java Scanner.class CM.class
 
 #Main.class: absyn/*.java parser.java sym.java Lexer.java ShowTreeVisitor.java Scanner.java Main.java
 
