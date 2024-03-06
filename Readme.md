@@ -17,17 +17,17 @@ This will generate the following:
 
 To test the scanner:
 
-`java Scanner < file.cm`
+`java -cp /usr/share/java/cup.jar Scanner < file.cm`
 
 To test the C Minus parser:
 
-`java CM file.cm [-a: print AST]`
+`java -cp /usr/share/java/cup.jar  CM file.cm [-a: print AST]`
 
 The -a flag prints an AST
 
 To redirect the output:
 
-`java CM file.cm -a > output.txt`
+`java -cp /usr/share/java/cup.jar  CM file.cm -a > output.txt`
 
 To remove the files:
 `make clean`
