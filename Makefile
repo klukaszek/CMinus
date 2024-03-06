@@ -7,9 +7,9 @@ all: absyn/*.java parser.java sym.java Scanner.class CM.class
 
 #Main.class: absyn/*.java parser.java sym.java Lexer.java ShowTreeVisitor.java Scanner.java Main.java
 
-Scanner.class: ShowTreeVisitor.java Lexer.java Scanner.java
+Scanner.class: Lexer.java ShowTreeVisitor.java Scanner.java
 
-CM.class: ShowTreeVisitor.java Lexer.java Scanner.java CM.java
+CM.class:  Lexer.java ShowTreeVisitor.java Scanner.java CM.java
 
 %.class: %.java
 	$(JAVAC) $^
