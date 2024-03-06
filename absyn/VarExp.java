@@ -12,4 +12,9 @@ public class VarExp extends Exp {
   public void accept( AbsynVisitor visitor, int level ) {
     visitor.visit( this, level );
   }
+
+  @ Override
+  public String toString() {
+    return this.var.toString();
+  }
 }

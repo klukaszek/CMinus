@@ -8,7 +8,7 @@ public class FunDec extends Declaration {
   public Exp body;
   public int argc;
 
-  public FunDec( int row, int col, Type type, String name, VarDecList params, CmpExp body ) {
+  public FunDec( int row, int col, Type type, String name, VarDecList params, Exp body ) {
     this.row = row;
     this.col = col;
     this.type = type;

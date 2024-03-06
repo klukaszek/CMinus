@@ -43,7 +43,7 @@ public class CM {
         AbsynVisitor visitor = new ShowTreeVisitor();
         result.accept(visitor, 0);
       }
-      System.out.println("Parsing completed successfully!"); // Handle the parsing result
+      System.out.println("\nParsing completed");
 
     } catch (Exception e) {
       e.printStackTrace();

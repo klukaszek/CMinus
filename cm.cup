@@ -104,7 +104,7 @@ nonterminal Type type_specifier;
 nonterminal FunDec function_declaration, function_prototype;
 nonterminal VarDecList parameter_list, parameters, local_declarations;
 nonterminal VarDec parameter;
-nonterminal CmpExp compound_statement;
+nonterminal Exp compound_statement;
 nonterminal ExpList statement_list, arguments, argument_list;
 
 nonterminal Var variable;
@@ -112,7 +112,7 @@ nonterminal Exp expression, statement, expression_statement, selection_statement
 nonterminal IterExp iteration_statement;
 nonterminal ReturnExp return_statement;
 nonterminal Exp ubool_expression, abool_expression, obool_expression;
-nonterminal AssignExp assignment_expression;
+nonterminal Exp assignment_expression;
 nonterminal Exp simple_expression;
 
 nonterminal Integer relop, addop, mulop;
@@ -169,7 +169,7 @@ variable_declaration ::= type_specifier:t ID:i SEMI
                          parser.report_error(i + ": Variable cannot be of type void", tleft, tright);
                          RESULT = new ErrorDec(tleft, tright, t, i);
                         } else {
-                          RESULT = new NormalDec(tleft, tright, t, i);
+                          RESULT = new SimpleDec(tleft, tright, t, i);
                         }
                       :}
                       | type_specifier:t ID:i LBRACKET INTEGER_LITERAL:l RBRACKET SEMI
@@ -180,10 +180,16 @@ variable_declaration ::= type_specifier:t ID:i SEMI
                           RESULT = new ArrayDec(tleft, tright, t, i, new IntExp(lleft, lright, Integer.parseInt(l)));
                         }
                       :}
-                      | type_specifier:t ID:i LBRACKET error:e RBRACKET SEMI
+                      /* This is a catch all for any other errors that may occur */
+                      | type_specifier:t ID:i error:e SEMI
                       {: 
-                        parser.report_error("Array Size Invalid: ", eleft, eright);
-                        RESULT = new ErrorDec(tleft, tright, t, i);
+                        parser.report_error("Syntax Error: Variable declaration invalid", eleft, eright);
+                        RESULT = new ErrorDec(eleft, eright, t, i);
+                      :}
+                      | type_specifier:t ID:i1 LBRACKET ID:i2 RBRACKET SEMI
+                      {: 
+                        parser.report_error("Syntax Error: Array size must be declared as an integer", i2left, i2right);
+                        RESULT = new ErrorDec(i2left, i2right, t, i2);
                       :}
                       ;
 
@@ -201,18 +207,31 @@ type_specifier ::= VOID:v
 /* Function declaration */    
 function_declaration ::= type_specifier:t ID:i LPAREN parameters:p RPAREN compound_statement:c
                         {: RESULT = new FunDec(tleft, tright, t, i, p, c); :}
+                        |
+                        type_specifier:t ID:i LPAREN parameters:p RPAREN
+                        {: 
+                          parser.report_error("Syntax Error: Missing compound statement", pleft, pright);
+                          RESULT = new FunDec(tleft, tright, t, i, p, new ErrorExp(pleft, pright));
+                        :}
+                        |
+                        type_specifier:t ID:i LPAREN error:e RPAREN compound_statement:c
+                        {: 
+                          parser.report_error("Syntax Error: Function parameters invalid", eleft, eright);
+                          // Disgusting looking code, but it works
+                          RESULT = new FunDec(tleft, tright, t, i, new VarDecList(new ErrorDec(eleft, eright, new Type(eleft, eright, Type.VOID), null), null), c);
+                        :}
                         ;
 
 /* Function prototype, almost the same as function declaration but there is no body */
 function_prototype ::= type_specifier:t ID:i LPAREN parameters:p RPAREN SEMI
-                      {: RESULT = new FunDec(tleft, tright, t, i, p, null); :}
+                      {: RESULT = new FunDec(tleft, tright, t, i, p, new NilExp(tleft, tright)); :}
                       ;
 
 /* Parameters */   
 parameters ::= parameter_list:p
               {: RESULT = p; :}
              | VOID:v
-              {: RESULT = new VarDecList(new NormalDec(vleft, vright, new Type(vleft, vright, Type.VOID), null), null); :}
+              {: RESULT = new VarDecList(new SimpleDec(vleft, vright, new Type(vleft, vright, Type.VOID), null), null); :}
              ;
 
 /* Parameter list */ 
@@ -236,7 +255,7 @@ parameter_list ::= parameter_list:pl COMMA parameter:p
 
 /* Parameter */        
 parameter ::= type_specifier:t ID:i
-              {: RESULT = new NormalDec(tleft, tright, new Type(tleft, tright, t.type), i); :}
+              {: RESULT = new SimpleDec(tleft, tright, new Type(tleft, tright, t.type), i); :}
               | type_specifier:t ID:i LBRACKET RBRACKET
               {: RESULT = new ArrayDec(tleft, tright, new Type(tleft, tright, t.type), i, new IntExp(tleft, tright, 0)); :}
               ;
@@ -297,11 +316,16 @@ statement ::= expression_statement:e
 /* Expression Statement */  
 expression_statement ::= expression:e SEMI
                         {: RESULT = e; :}
-                        | SEMI
-                        {: RESULT = null; :}
+                        | SEMI:s
+                        {: RESULT = new NilExp(sleft, sright); :}
                         | error:e SEMI
                         {: 
                           parser.report_error("Expression Invalid: ", eleft, eright);
+                          RESULT = new ErrorExp(eleft, eright);
+                        :}
+                        | SEMI error:e
+                        {: 
+                          parser.report_error("Syntax Error: Semicolon misplaced", eleft, eright);
                           RESULT = new ErrorExp(eleft, eright);
                         :}
                         ;
@@ -310,7 +334,7 @@ expression_statement ::= expression:e SEMI
 /* It is easier to just throw error if anything incorrect is found, but I can give be more specific for possible errors */
 selection_statement ::= IF:i LPAREN expression:e RPAREN statement:s
                         {: 
-                        RESULT = new IfExp(ileft, iright, e, s, null); :}
+                        RESULT = new IfExp(ileft, iright, e, s, new NilExp(ileft, iright)); :}
                        | IF:i LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
                         {: 
                         RESULT = new IfExp(ileft, iright, e, s1, s2); :}
@@ -318,6 +342,11 @@ selection_statement ::= IF:i LPAREN expression:e RPAREN statement:s
                         {: 
                            parser.report_error("Else without If: ", ileft, iright);
                            RESULT = new ErrorExp(ileft, iright);
+                        :}
+                        | IF:i LPAREN error:e RPAREN statement:s
+                        {: 
+                          parser.report_error("If Condition Invalid: ", eleft, eright);
+                          RESULT = new IfExp(ileft, iright, new ErrorExp(eleft, eright), s, new NilExp(ileft, iright));
                         :}
                         ;
 
@@ -336,7 +365,7 @@ iteration_statement ::= WHILE:w LPAREN expression:e RPAREN statement:s
 /* Return statement can have an expression or not */
 /* Don't block the return statement if there is an error, just add an error expression to the return statement */
 return_statement ::= RETURN:r SEMI
-                   {: RESULT = new ReturnExp(rleft, rright, null); :}
+                   {: RESULT = new ReturnExp(rleft, rright, new NilExp(rleft, rright)); :}
                    | RETURN:r expression:e SEMI
                    {: RESULT = new ReturnExp(rleft, rright, e); :}
                    | RETURN:r error:e SEMI
@@ -352,19 +381,19 @@ expression ::=  assignment_expression:e
 
 /* Variable (left-hand side of assignment) */
 variable ::= ID:i
-            {: RESULT = new NormalVar(ileft, iright, i); :}
+            {: RESULT = new SimpleVar(ileft, iright, i); :}
             | ID:i LBRACKET expression:e RBRACKET
-            {: RESULT = new ArrayVar(ileft, iright, i, e); :}
+            {: RESULT = new IndexVar(ileft, iright, i, e); :}
             | ID:i LBRACKET error:e RBRACKET
             {: 
-              parser.report_error("Array Index Invalid: ", eleft, eright);
-              RESULT = new ArrayVar(ileft, iright, i, new ErrorExp(eleft, eright));
+              parser.report_error("Syntax Error: Array index invalid: ", eleft, eright);
+              RESULT = new IndexVar(ileft, iright, i, new ErrorExp(eleft, eright));
             :}
             ;
 
 /* OR expression */
 obool_expression ::= obool_expression:o OR abool_expression:a
-                  {: RESULT = new BoolExp(oleft, oright, o, BoolExp.OR, a); :}
+                  {: RESULT = new CondExp(oleft, oright, o, CondExp.OR, a); :}
                   |
                   abool_expression:a
                   {: RESULT = a; :}
@@ -372,7 +401,7 @@ obool_expression ::= obool_expression:o OR abool_expression:a
 
 /* AND expression */
 abool_expression ::= abool_expression:a AND ubool_expression:u
-                  {: RESULT = new BoolExp(aleft, aright, a, BoolExp.AND, u); :}
+                  {: RESULT = new CondExp(aleft, aright, a, CondExp.AND, u); :}
                   |
                   ubool_expression:u
                   {: RESULT = u; :}
@@ -380,7 +409,7 @@ abool_expression ::= abool_expression:a AND ubool_expression:u
 
 /* NOT expression */
 ubool_expression ::= NOT ubool_expression:u
-                  {: RESULT = new BoolExp(uleft, uright, u, BoolExp.NOT, null); :}
+                  {: RESULT = new CondExp(uleft, uright, u, CondExp.NOT, null); :}
                   | simple_expression:s
                   {: RESULT = s; :}
                   ;
@@ -410,6 +439,11 @@ relop ::= LT
 /* Assignment Expression */
 assignment_expression ::= variable:v ASSIGN expression:e 
                       {: RESULT = new AssignExp(vleft, vright, v, e); :}
+                      | error:e ASSIGN expression:e1
+                      {: 
+                        parser.report_error("Assignment Invalid: ", eleft, eright);
+                        RESULT = new  ErrorExp(eleft, eright);
+                      :}
                       ;
 
 
@@ -418,6 +452,11 @@ additive_expression ::= additive_expression:a addop:o term:t
                        {: RESULT = new OpExp(aleft, tright, a, o, t); :}
                        | term:t
                        {: RESULT = t; :}
+                       | error:e term:t
+                       {: 
+                         parser.report_error("Additive expression invalid", eleft, eright);
+                         RESULT = new OpExp(eleft, eright, new ErrorExp(eleft, eright), OpExp.UNKNOWN, t);
+                       :}
                        ;
 
 /* Addition Operator */
@@ -458,9 +497,9 @@ factor ::= LPAREN expression:e RPAREN
         | INTEGER_LITERAL:i
         {: RESULT = new IntExp(ileft, iright, Integer.parseInt(i)); :}
         | TRUE:t
-        {: RESULT = new OpExp(tleft, tright, new IntExp(tleft, tright, 1), OpExp.EQ, new IntExp(tleft, tright, 1)); :}
+        {: RESULT = new BoolExp(tleft, tright, true); :}
         | FALSE:f
-        {: RESULT = new OpExp(fleft, fright, new IntExp(fleft, fright, 0), OpExp.EQ, new IntExp(fleft, fright, 0)); :}
+        {: RESULT = new BoolExp(fleft, fright, false); :}
         ;
 
 /* Function Call */

@@ -16,14 +16,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     System.out.println("Array Declaration: " + dec.toString());
     level++;
     dec.type.accept(this, level);
-  }
-
-  public void visit(ArrayVar var, int level) {
-    indent(level);
-    System.out.println("ArrayVar: " + var.name);
-    level++;
-    var.ind.accept(this, level);
-  }
+  ;}
 
   public void visit(AssignExp exp, int level) {
     indent(level);
@@ -39,7 +32,12 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
   public void visit(BoolExp exp, int level) {
     indent(level);
-    System.out.println("BoolExp: " + exp.left + " " + exp.op + " " + exp.right);
+    System.out.println("BoolExp: " + exp.toString());
+  }
+
+  public void visit(CondExp exp, int level) {
+    indent(level);
+    System.out.println("CondExp: " + exp.toString());
   }
 
   public void visit(CallExp exp, int level) {
@@ -90,12 +88,12 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
   public void visit(ErrorDec dec, int level) {
     indent(level);
-    System.out.println("Declaration Error at line " + dec.row + " and column " + dec.col);
+    System.out.println("Declaration: Error at line " + dec.row + " and column " + dec.col);
   }
 
   public void visit(ErrorExp exp, int level) {
     indent(level);
-    System.out.println("Expression Error at line " + exp.row + " and column " + exp.col);
+    System.out.println("Expression: Error at line " + exp.row + " and column " + exp.col);
   }
 
   public void visit(Exp exp, int level) {
@@ -156,6 +154,13 @@ public class ShowTreeVisitor implements AbsynVisitor {
     }
   }
 
+  public void visit(IndexVar var, int level) {
+    indent(level);
+    System.out.println("IndexVar: " + var.toString());
+    level++;
+    var.ind.accept(this, level);
+  }
+
   public void visit(IntExp exp, int level) {
     indent(level);
     System.out.println("IntExp: " + exp.value);
@@ -175,74 +180,47 @@ public class ShowTreeVisitor implements AbsynVisitor {
     exp.body.accept(this, level);
   }
 
-  public void visit(NormalDec dec, int level) {
+  public void visit(SimpleDec dec, int level) {
     indent(level);
     if (dec.type.type != Type.VOID)
-      System.out.println("Normal Declaration: " + dec.type + " " + dec.name);
+      System.out.println("Simple Declaration: " + dec.type + " " + dec.name);
     else
-      System.out.println("Normal Declaration: " + dec.type);
+      System.out.println("Simple Declaration: " + dec.type);
 
     level++;
     dec.type.accept(this, level);
   }
 
-  public void visit(NormalVar var, int level) {
+  public void visit(SimpleVar var, int level) {
     indent(level);
-    System.out.println("NormalVar: " + var.name);
+    System.out.println("SimpleVar: " + var.name);
+  }
+
+  public void visit(NilExp exp, int level) {
+    indent(level);
+    System.out.println("NilExp: " + exp.toString());
   }
 
   public void visit( OpExp exp, int level ) {
     indent( level );
-    System.out.print( "OpExp:" ); 
-    switch( exp.op ) {
-      case OpExp.PLUS:
-        System.out.println( " + " );
-        break;
-      case OpExp.MINUS:
-        System.out.println( " - " );
-        break;
-      case OpExp.MUL:
-        System.out.println( " * " );
-        break;
-      case OpExp.DIV:
-        System.out.println( " / " );
-        break;
-      case OpExp.EQ:
-        System.out.println( " = " );
-        break;
-      case OpExp.LT:
-        System.out.println( " < " );
-        break;
-      case OpExp.LE:
-        System.out.println( " <= " );
-        break;
-      case OpExp.GT:
-        System.out.println( " > " );
-        break;
-      case OpExp.GE:
-        System.out.println( " >= " );
-        break;
-      case OpExp.NE:
-        System.out.println( " != " );
-        break;
-      default:
-        System.out.println( "Unrecognized operator at line" + exp.row + " and column " + exp.col);
-        break;
-    }
+    System.out.print( "OpExp: " ); 
+    System.out.println( exp.toString() );
 
     level++;
 
-    if (exp.left != null)
-      exp.left.accept( this, level );
-    if (exp.right != null)
-      exp.right.accept( this, level );
+    
+    exp.left.accept( this, level );
+    exp.right.accept( this, level );
   }
 
   public void visit(ReturnExp exp, int level) {
     indent(level);
     System.out.println("ReturnExp:");
     level++;
-    exp.exp.accept(this, level);
+    
+    // Important to check for null here because return statements can have no expression
+    if (exp.exp != null)
+      exp.exp.accept(this, level);
   }
 
   public void visit(Type type, int level) {

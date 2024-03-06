@@ -1,24 +1,22 @@
 package absyn;
 
 public class BoolExp extends Exp {
-  
-  public final static int AND = 0;
-  public final static int OR = 1;
-  public final static int NOT = 2;
 
-  public Exp left;
-  public int op;
-  public Exp right;
+  public boolean value;
 
-  public BoolExp( int row, int col, Exp left, int op, Exp right ) {
+  public BoolExp(int row, int col, boolean value) {
     this.row = row;
     this.col = col;
-    this.left = left;
-    this.op = op;
-    this.right = right;
+    this.value = value;
   }
 
-  public void accept( AbsynVisitor visitor, int level ) {
-    visitor.visit( this, level );
+  public void accept(AbsynVisitor visitor, int level) {
+    visitor.visit(this, level);
   }
+
+  @Override
+  public String toString() {
+    return Boolean.toString(value);
+  }
+
 }
