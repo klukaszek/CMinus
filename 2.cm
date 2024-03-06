@@ -1,0 +1,19 @@
+/*
+ 
+ Test: 2.cm
+ Errors:
+  - Syntax error:  Array Missing Semicolon
+  - Syntax error:  Missing Declaration Name
+  - Syntax error:  Var Missing Semicolon
+
+*/
+
+int my_func(int x) {
+    int myvar[123]  /* Syntax error:  Dec Missing Semicolon  */
+    int;            /* Syntax error:  Missing Declaration Name  */
+
+    /* No return statement */
+    
+    /* Variable g is not declared when assigning a value */
+    int g = 5;
+}
