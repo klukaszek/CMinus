@@ -6,6 +6,7 @@
   - Syntax error:  Missing Declaration Name
   - Syntax error:  Var Missing Semicolon
 
+  This file can be parsed using: java -cp /usr/share/java/cup.jar CM 2.cm
 */
 
 int my_func(int x) {

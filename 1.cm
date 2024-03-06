@@ -17,7 +17,7 @@
   - Multiline comments
   - While loops
   
-  This file can be parsed using: java CM 1.cm
+  This file can be parsed using: java -cp /usr/share/java/cup.jar CM 1.cm
 
 */ 
 
