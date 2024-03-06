@@ -26,7 +26,7 @@ java Scanner < file.cm
 
 `
 
-To test the C Minus parser
+To test the C Minus parser:
 
 `bash
 
@@ -35,6 +35,12 @@ java CM file.cm [-a: print AST]
 `
 
 The -a flag prints an AST
+
+To redirect the output:
+
+`bash
+java CM file.cm -a > output.txt
+`
 
 ### Documentation
 
