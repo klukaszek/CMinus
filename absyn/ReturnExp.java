@@ -12,4 +12,8 @@ public class ReturnExp extends Exp {
   public void accept( AbsynVisitor visitor, int level ) {
     visitor.visit( this, level );
   }
+
+  public int getReturnType() {
+    return exp.dtype.type.type;
+  }
 }

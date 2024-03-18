@@ -8,6 +8,9 @@ parser code {:
     
     /* Print the AST if the command line option -printAST is used. */ 
     public static boolean printAST;
+
+    // Keep track of parsing status exclusively using this boolean
+    public static boolean errorParser = false;
     
     /* Change the method report_error so it will display the line and
        column of where the error occurred in the input as well as the
@@ -17,6 +20,8 @@ parser code {:
    
         /* Create a StringBuffer called 'm' with the string 'Error' in it. */
         StringBuffer m = new StringBuffer("Error");
+
+        parser.errorParser = true;
    
         /* Check if the information passed to the method is the same
            type as the type java_cup.runtime.Symbol. */
@@ -53,6 +58,8 @@ parser code {:
     /* Overload default report_error with one that takes line number and column so that we can accurately report where the error came from */
     public void report_error(String message, int line, int col) {
 
+      parser.errorParser = true;
+
       /* Create a StringBuffer called 'm' with the string 'Error' in it. */
       StringBuffer m = new StringBuffer("Error");
 
@@ -79,11 +86,6 @@ parser code {:
         report_error(message, info);
         System.exit(1);
     }
-
-    public void PrintAST(boolean printAST) {
-        this.printAST = printAST;
-    }
-
 :};
    
 /* ------------Declaration of Terminals and Non Terminals Section----------- */

@@ -19,14 +19,23 @@
  */
 
 import absyn.*;
+import java.util.ArrayList;
 
 public class CM {
+
+  enum Flag {
+    AST,
+    SEMANTIC
+  }
+
   public static void main(String[] args) throws Exception {
 
     if (args.length == 0) {
-      System.out.println("Usage: java CM <filename.cm> [-a]");
+      System.out.println("Usage: java CM <filename.cm> [-a][-s]");
       return;
     }
+
+    ArrayList<Flag> flags = new ArrayList<Flag>();
 
     try {
       parser p = new parser(new Lexer(new java.io.FileReader(args[0])));
@@ -34,15 +43,24 @@ public class CM {
 
       for (int i = 1; i < args.length; i++) {
         if (args[i].equals("-a")) {
-          p.PrintAST(true);
+          flags.add(Flag.AST);
+        }
+        if (args[i].equals("-s")) {
+          flags.add(Flag.SEMANTIC);
         }
       }
-
-      if (parser.printAST == true) {
+      
+      if (flags.contains(Flag.AST)) {
         System.out.println("The abstract syntax tree is:");
         AbsynVisitor visitor = new ShowTreeVisitor();
         result.accept(visitor, 0);
       }
+
+      if (flags.contains(Flag.SEMANTIC)) {
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        analyzer.analyze(result);
+      }
+
       System.out.println("\nParsing completed");
 
     } catch (Exception e) {
