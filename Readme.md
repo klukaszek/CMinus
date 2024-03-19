@@ -7,8 +7,7 @@
 
 To compile the project type in the following command.
 
-`bash
-make`
+`make`
 
 This will generate the following:
 
