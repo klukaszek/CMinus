@@ -8,14 +8,13 @@
  */
 
 import absyn.*;
+
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 public class SemanticAnalyzer implements AbsynVisitor {
 
-  private static final String NEW_SCOPE = "Entering new scope";
-  private static final String EXIT_SCOPE = "Exiting scope";
   private static final int SPACES = 4;
 
   // Define an enum for the scope type (global or local)
@@ -73,7 +72,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
           // If the symbol is in the same scope, it is a redeclaration
           if (node.level == current.level && node.name.equals(current.name)) {
-            error(dec.row, dec.col, "Redeclaration of symbol: " + dec.name);
+            warn(dec.row, dec.col, "Redeclaration of symbol: " + dec.name);
           }
 
           list.add(i, node);
@@ -198,13 +197,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // This also checks if the function contains any unreachable code
   // This function can be called recursively to check for return statements in
   // nested scopes
-  private boolean checkFunctionReturn(String name, ExpList expList, int returnType) {
+  //
+  // I use a quiet flag to suppress error messages when checking for return when recursively calling this function
+  private boolean checkFunctionReturn(String name, ExpList expList, int returnType, boolean quiet) {
 
     assert (returnType != Type.VOID || returnType != Type.INT || returnType != Type.BOOL);
     assert (expList != null);
 
     Exp current = null;
     boolean hasReturn = false;
+    boolean condReturn = false;
     boolean iterReturn = false;
 
     // Iterate through the expression list and check for return statements (can be
@@ -218,22 +220,18 @@ public class SemanticAnalyzer implements AbsynVisitor {
         checkReturnType(name, (ReturnExp) current, returnType);
 
       } else if (hasReturn) {
-        error(current.row, current.col, "Unreachable code");
+        if (!quiet)
+          error(current.row, current.col, "Unreachable code");
 
       } else if (current instanceof IfExp) {
         // This will only be true if the if statement and the else statement both
         // contain a return statement
         // Otherwise, we continue to check for a return expression in the function scope
-        hasReturn = checkIfElseContainsReturn(name, (IfExp) current, returnType);
+        condReturn = checkIfElseContainsReturn(name, (IfExp) current, returnType);
 
       } else if (current instanceof IterExp) {
 
-        boolean localIterReturn = checkIterContainsReturn(name, (IterExp) current, returnType);
-
-        // Only set iterReturn to true if it is not already true
-        if (!iterReturn && localIterReturn) {
-          iterReturn = true;
-        }
+        iterReturn = checkIterContainsReturn(name, (IterExp) current, returnType);
 
       }
 
@@ -241,38 +239,30 @@ public class SemanticAnalyzer implements AbsynVisitor {
       expList = expList.tail;
     }
 
+    if (condReturn) {
+      hasReturn = true;
+    }
+
     // Our only iteration statement is a while loop, so we have to make sure that
     // the function also has a return statement outside of the loop in case the loop
     // is never executed
     if (iterReturn && !hasReturn) {
-      error(current.row, current.col, "Function " + name
-          + " does not have a return statement outside of while loop. Function may not return type: "
-          + typeToString(returnType));
+      if (!quiet)
+        error(current.row, current.col, "Function " + name
+            + " does not have a return statement outside of while loop. Function may not return type: "
+            + typeToString(returnType));
     }
-
     // If the expected return type is not void and there is no return statement,
     // throw an error because the function is missing a return statement
-    if (returnType != Type.VOID && !hasReturn) {
-      error(current.row, current.col,
-          "Function " + name
-              + " may not return properly. Please make sure all branches return, or the function has a general return statement. Expected return type: "
-              + typeToString(returnType));
+    else if (returnType != Type.VOID && !hasReturn) {
+      if (!quiet)
+        error(current.row, current.col,
+            "Function " + name
+                + " may not return properly. Make sure all branches return, or function has general return statement. Expected return type: "
+                + typeToString(returnType));
     }
 
     return hasReturn;
-  }
-
-  public String typeToString(int type) {
-    switch (type) {
-      case Type.VOID:
-        return "void";
-      case Type.INT:
-        return "int";
-      case Type.BOOL:
-        return "bool";
-      default:
-        return "unknown";
-    }
   }
 
   // Check if the if statement has a return statement
@@ -289,7 +279,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // If it is, we need to check if the if block has a return statement
     if (ifExp.ifDo instanceof CmpExp) {
       CmpExp ifBlock = (CmpExp) ifExp.ifDo;
-      ifHasReturn = checkFunctionReturn(name, ifBlock.expList, returnType);
+      ifHasReturn = checkFunctionReturn(name, ifBlock.expList, returnType, true);
       // If the if statement is only 1 expression, we need to check if the expression
       // is a return statement
     } else if (ifExp.ifDo instanceof ReturnExp) {
@@ -301,7 +291,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // If it is, we need to check if the else block has a return statement.
     if (ifExp.elseDo instanceof CmpExp) {
       CmpExp elseBlock = (CmpExp) ifExp.elseDo;
-      elseHasReturn = checkFunctionReturn(name, elseBlock.expList, returnType);
+      elseHasReturn = checkFunctionReturn(name, elseBlock.expList, returnType, true);
       // If the else statement is only 1 expression, we need to check if the
       // expression is a return statement
     } else if (ifExp.elseDo instanceof ReturnExp) {
@@ -326,7 +316,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
       error(iterExp.row, iterExp.col, "Function " + name + " contains an empty while loop.");
 
     } else if (iterExp.body instanceof CmpExp) {
-      hasReturn = checkFunctionReturn(name, ((CmpExp) iterExp.body).expList, returnType);
+      hasReturn = checkFunctionReturn(name, ((CmpExp) iterExp.body).expList, returnType, true);
 
     } else if (iterExp.body instanceof ReturnExp) {
       hasReturn = true;
@@ -338,17 +328,36 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   // Generic error message
   private void error(int row, int col, String message) {
-    System.err.println("Error at line " + (row + 1) + ":" + (col + 1) + " - " + message);
+    System.err.println("\nError at line " + (row + 1) + ":" + (col + 1) + " - " + message);
+    System.err.println();
+  }
+
+  private void warn(int row, int col, String message) {
+    System.err.println("\nWarning at line " + (row + 1) + ":" + (col + 1) + " - " + message);
+    System.err.println();
+  }
+
+  public String typeToString(int type) {
+    switch (type) {
+      case Type.VOID:
+        return "void";
+      case Type.INT:
+        return "int";
+      case Type.BOOL:
+        return "bool";
+      default:
+        return "unknown";
+    }
   }
 
   /* ----------------- Visitor Methods and Helpers ----------------- */
 
   private void enterScope(String msg) {
-    System.out.println(NEW_SCOPE + ": (" + msg + ")");
+    System.out.println("Entering new scope: (" + msg + ")");
   }
 
   private void exitScope(String msg) {
-    System.out.println(EXIT_SCOPE + ": (" + msg + ")");
+    System.out.println("Exiting scope: (" + msg + ")");
   }
 
   // Indent based on current scope level
@@ -364,9 +373,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
       return;
     }
 
+    if (decArr.type.type == Type.VOID) {
+      error(decArr.row, decArr.col, "Invalid array declaration. Array type cannot be void.");
+    }
+
     // Ensure that the array size is greater than 0
     if (decArr.size.value < 0) {
       error(decArr.row, decArr.col, "Array size must be greater than 0");
+    } else if (decArr.size.value == 0) {
+      warn(decArr.row, decArr.col,
+          "Array size not defined. Make sure this is a function parameter and not a variable declaration.");
     }
 
     // Set the visibility of the array declaration based on the current scope level
@@ -580,24 +596,34 @@ public class SemanticAnalyzer implements AbsynVisitor {
       return;
     }
 
+    // Insert any function declaration into the symbolTable since it could be a
+    // prototype
     insertSymbol(dec, level);
-    indent(level);
-    enterScope("function " + dec.name);
 
-    if (dec.params != null) {
-      dec.params.accept(this, level + 1);
-    }
+    // If the function declaration has a body, we need to traverse the parameters
+    // and the body
+    // Then we check if the function has a proper return statement
+    if (!(dec.body instanceof NilExp) && dec.body != null) {
+      indent(level);
+      enterScope("function " + dec.name);
 
-    if (dec.body != null) {
+      if (dec.params != null) {
+        // If the function head is simply "void", we know there are no parameters
+        if (dec.params.head.type.type != Type.VOID) {
+          dec.params.accept(this, level + 1);
+        }
+      }
+
       dec.body.accept(this, level + 1);
+      // We need to check if the function has a return statement
+      checkFunctionReturn(dec.name, ((CmpExp) dec.body).expList, dec.type.type, true);
+
+      removeScopeFromTable(level + 1);
+      indent(level);
+      exitScope("function " + dec.name);
+    } else {
+      removeScopeFromTable(level + 1);
     }
-
-    // We need to check if the function has a return statement
-    checkFunctionReturn(dec.name, ((CmpExp) dec.body).expList, dec.type.type);
-
-    removeScopeFromTable(level + 1);
-    indent(level);
-    exitScope("function " + dec.name);
   }
 
   public void visit(IfExp exp, int level) {
@@ -766,6 +792,10 @@ public class SemanticAnalyzer implements AbsynVisitor {
     if (dec == null) {
       error(dec.row, dec.col, "Invalid simple declaration: NULL");
       return;
+    }
+
+    if (dec.type.type == Type.VOID) {
+      error(dec.row, dec.col, "Invalid simple declaration. Type cannot be void.");
     }
 
     // Set the visibility of the simple declaration based on the current scope level

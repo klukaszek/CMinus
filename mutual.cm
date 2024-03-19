@@ -25,4 +25,5 @@ int main(void) {
   g(x);
   output(x);
   output(y);
+  return 0;
 }

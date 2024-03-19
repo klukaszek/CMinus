@@ -21,9 +21,11 @@ To test the scanner:
 
 To test the C Minus parser:
 
-`java -cp /usr/share/java/cup.jar  CM file.cm [-a: print AST]`
+`java -cp /usr/share/java/cup.jar  CM file.cm [-a: print AST][-s: semantics and symbols]`
 
 The -a flag prints an AST
+
+The -s flag shows the semantic analysis and the building of the symbol table.
 
 To redirect the output:
 
@@ -34,7 +36,7 @@ To remove the files:
 
 ### Documentation
 
-The documentation and discussion of the work done for checkpoint 1 are in *C1_Doc.pdf*
+The documentation and discussion of the work done for checkpoint 2 are in *C2_Doc.pdf*
 
 ### Tests
 

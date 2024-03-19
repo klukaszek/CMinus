@@ -167,20 +167,16 @@ declaration ::= variable_declaration:v
 
 /* Variable declaration */    
 variable_declaration ::= type_specifier:t ID:i SEMI
-                      {: if (t.type == Type.VOID){ 
-                         parser.report_error(i + ": Variable cannot be of type void", tleft, tright);
-                         RESULT = new ErrorDec(tleft, tright, t, i);
-                        } else {
-                          RESULT = new SimpleDec(tleft, tright, t, i);
-                        }
+                      {:
+                        RESULT = new SimpleDec(tleft, tright, t, i);
                       :}
                       | type_specifier:t ID:i LBRACKET INTEGER_LITERAL:l RBRACKET SEMI
-                      {: if (t.type == Type.VOID){ 
-                         parser.report_error(i + ": Variable cannot be of type void", tleft, tright);
-                         RESULT = new ErrorDec(tleft, tright, t, i);
-                        } else {
-                          RESULT = new ArrayDec(tleft, tright, t, i, new IntExp(lleft, lright, Integer.parseInt(l)));
-                        }
+                      {: 
+                        RESULT = new ArrayDec(tleft, tright, t, i, new IntExp(lleft, lright, Integer.parseInt(l)));
+                      :}
+                      | type_specifier:t ID:i LBRACKET MINUS INTEGER_LITERAL:l RBRACKET SEMI
+                      {: 
+                        RESULT = new ArrayDec(tleft, tright, t, i, new IntExp(lleft, lright, -1 * Integer.parseInt(l)));
                       :}
                       /* This is a catch all for any other errors that may occur */
                       | type_specifier:t ID:i error:e SEMI
@@ -384,6 +380,10 @@ expression ::=  assignment_expression:e
 /* Variable (left-hand side of assignment) */
 variable ::= ID:i
             {: RESULT = new SimpleVar(ileft, iright, i); :}
+            | ID:i LBRACKET term:t RBRACKET
+            {: 
+              RESULT = new IndexVar(ileft, iright, i, t);
+            :}
             | ID:i LBRACKET expression:e RBRACKET
             {: RESULT = new IndexVar(ileft, iright, i, e); :}
             | ID:i LBRACKET error:e RBRACKET

@@ -16,4 +16,8 @@ public class ReturnExp extends Exp {
   public int getReturnType() {
     return exp.dtype.type.type;
   }
+
+  public String toString() {
+    return "return " + exp.toString();
+  }
 }
