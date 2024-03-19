@@ -3,9 +3,6 @@ package absyn;
 // Handles declarations of variables that are not arrays (i.e int or bool)
 public class SimpleDec extends VarDec{
 
-  public Type type;
-  public String name;
-
   public SimpleDec( int row, int col, Type type, String name ) {
     this.row = row;
     this.col = col;

@@ -33,11 +33,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
     symbolTable = new HashMap<String, ArrayList<NodeType>>();
 
     // Predefined functions stated in the sematic requirements of the specifications
-    VarDecList inputParams = new VarDecList(new SimpleDec(-1, -1, new Type(-1, -1, Type.VOID), null), null);
-    FunDec input = new FunDec(-1, -1, new Type(-1, -1, Type.INT), "input", inputParams, null);
+    FunDec input = new FunDec(-1, -1, new Type(-1, -1, Type.INT), "input", null, null);
 
-    VarDecList outputParams = new VarDecList(new SimpleDec(-1, -1, new Type(-1, -1, Type.VOID), "output"), null);
+    VarDecList outputParams = new VarDecList(new SimpleDec(-1, -1, new Type(-1, -1, Type.ANY), "output"), null);
     FunDec output = new FunDec(-1, -1, new Type(-1, -1, Type.VOID), "output", outputParams, null);
+
+    System.out.println("Predefined functions:");
 
     // Add the predefined functions to the symbolTable
     insertSymbol(input, ScopeType.GLOBAL.ordinal());
@@ -47,9 +48,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // This is identical to calling the accept method on the root node, I just
   // wanted to make it explicit
   public void analyze(Absyn rootNode) {
-
     rootNode.accept(this, ScopeType.GLOBAL.ordinal());
-
   }
 
   // Primary function used to build the symbol symbol and check for redeclarations
@@ -74,7 +73,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
           // If the symbol is in the same scope, it is a redeclaration
           if (node.level == current.level && node.name.equals(current.name)) {
-            error(dec.row, dec.col, "Redeclaration of symbol " + dec.name);
+            error(dec.row, dec.col, "Redeclaration of symbol: " + dec.name);
           }
 
           list.add(i, node);
@@ -92,6 +91,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
       ArrayList<NodeType> list = new ArrayList<NodeType>();
       list.add(node);
       symbolTable.put(dec.name, list);
+    }
+
+    // We do this so we don't print any symbols of NULL (such as having void as the
+    // only parameter of a function)
+    if (dec.name != null) {
+      indent(level);
+      System.out.println("Inserting symbol (" + dec + ")");
     }
   }
 
@@ -131,28 +137,35 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // Scopes are removed from the symbolTable when they are exited to prevent the
   // same symbol from being declared in a nested scope
   private void removeScopeFromTable(int level) {
-    
+
     // Create an iterator to iterate through the symbolTable keys
     Iterator<String> iterator = symbolTable.keySet().iterator();
     String key;
     ArrayList<NodeType> list;
     NodeType current;
 
-    // Iterate through the symbolTable and remove any symbols that are in the current scope
+    // Iterate through the symbolTable and remove any symbols that are in the
+    // current scope
     while (iterator.hasNext()) {
       key = iterator.next();
 
       // Using the key, get the list of nodes that represent the symbol
       list = symbolTable.get(key);
-      
+
       // Iterate through the list of nodes that represent the symbol
       for (int i = 0; i < list.size(); i++) {
         current = list.get(i);
-        
+
         // If the current node is in the expected scope, remove it from the list
         if (current.level == level) {
-          indent(level);
-          System.out.println(current);
+          // Ignore any symbols with the name null (such as having void as the only
+          // parameter of a function)
+          if (current.name != null) {
+            indent(level);
+            System.out.println("Removing Symbol: (" + current + ")");
+          }
+
+          // Remove the symbol from the list
           list.remove(i);
           i--;
         }
@@ -171,7 +184,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
   private void checkReturnType(String name, ReturnExp exp, int expectedType) {
 
     if (exp.getReturnType() != expectedType) {
-      error(exp.row, exp.col, "Return type does not match function " + name + " expected return type: " + expectedType);
+      error(exp.row, exp.col,
+          "Return type does not match function " + name + " expected return type: " + typeToString(expectedType));
     }
 
   }
@@ -232,17 +246,33 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // is never executed
     if (iterReturn && !hasReturn) {
       error(current.row, current.col, "Function " + name
-          + " does not have a return statement outside of while loop. Function may not return type: " + returnType);
+          + " does not have a return statement outside of while loop. Function may not return type: "
+          + typeToString(returnType));
     }
 
     // If the expected return type is not void and there is no return statement,
     // throw an error because the function is missing a return statement
     if (returnType != Type.VOID && !hasReturn) {
       error(current.row, current.col,
-          "Function " + name + " does not have a return statement. Expected return type: " + returnType);
+          "Function " + name
+              + " may not return properly. Please make sure all branches return, or the function has a general return statement. Expected return type: "
+              + typeToString(returnType));
     }
 
     return hasReturn;
+  }
+
+  public String typeToString(int type) {
+    switch (type) {
+      case Type.VOID:
+        return "void";
+      case Type.INT:
+        return "int";
+      case Type.BOOL:
+        return "bool";
+      default:
+        return "unknown";
+    }
   }
 
   // Check if the if statement has a return statement
@@ -313,12 +343,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   /* ----------------- Visitor Methods and Helpers ----------------- */
 
-  private void enterScope() {
-    System.out.println(NEW_SCOPE);
+  private void enterScope(String msg) {
+    System.out.println(NEW_SCOPE + ": (" + msg + ")");
   }
 
-  private void exitScope() {
-    System.out.println(EXIT_SCOPE);
+  private void exitScope(String msg) {
+    System.out.println(EXIT_SCOPE + ": (" + msg + ")");
   }
 
   // Indent based on current scope level
@@ -329,75 +359,469 @@ public class SemanticAnalyzer implements AbsynVisitor {
   }
 
   public void visit(ArrayDec decArr, int level) {
+
+    if (decArr == null) {
+      return;
+    }
+
+    // Ensure that the array size is greater than 0
+    if (decArr.size.value < 0) {
+      error(decArr.row, decArr.col, "Array size must be greater than 0");
+    }
+
+    // Set the visibility of the array declaration based on the current scope level
+    if (level > ScopeType.GLOBAL.ordinal()) {
+      decArr.visibility = ScopeType.LOCAL.ordinal();
+    } else {
+      decArr.visibility = ScopeType.GLOBAL.ordinal();
+    }
+
+    // Add the array declaration to the symbolTable
+    insertSymbol(decArr, level);
   }
 
-  public void visit(AssignExp exp, int level) {
+  public void visit(AssignExp aExp, int level) {
+
+    if (aExp == null) {
+      return;
+    }
+
+    // Check left hand side of the assignment expression
+    if (aExp.var != null) {
+      aExp.var.accept(this, level);
+      aExp.exp.accept(this, level);
+
+      Declaration leftDec = lookupSymbol(aExp.var.name, false, aExp.row, aExp.col);
+
+      // Get type of left hand side of the assignment expression, and the type of the
+      // associated expression
+      Type varType = leftDec.type;
+      Type expType = aExp.exp.dtype.type;
+
+      // Check if the types of the left hand side and right hand side of the
+      // assignment expression match
+      if (varType.type != expType.type) {
+        error(aExp.row, aExp.col,
+            "Type mismatch in assignment expression. Expected type: " + varType + " Actual type: " + expType);
+      }
+
+      // Assign the assignment expression a type declaration so that any lookups calls
+      // can get the type of the expression
+      aExp.dtype = new SimpleDec(aExp.row, aExp.col, varType, null);
+    } else {
+      aExp.exp.accept(this, level);
+      error(aExp.row, aExp.col, "Invalid assignment expression");
+      aExp.dtype = new ErrorDec(aExp.row, aExp.col, null, null);
+    }
   }
 
   public void visit(BoolExp exp, int level) {
+    if (exp != null) {
+      System.out.println("BoolExp: " + exp.value);
+      exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.BOOL), null);
+    } else {
+      error(exp.row, exp.col, "Invalid boolean expression: NULL");
+      exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid boolean expression");
+    }
   }
 
-  public void visit(CallExp exp, int level) {
+  public void visit(CallExp cExp, int level) {
+
+    if (cExp == null) {
+      return;
+    }
+
+    // If the function call is properly defined, we need to accept the arguments and
+    // check them properly
+    if (cExp.args != null && cExp.args.head != null) {
+      cExp.args.accept(this, level);
+    }
+
+    // Lookup the function call in the symbolTable to check if it exists
+    Declaration dec = lookupSymbol(cExp.func, true, cExp.row, cExp.col);
+
+    // If the function call is valid, we need to check if the arguments match the
+    // function's expected parameters
+    // If the function call is invalid, we need to print an error message
+    if (dec instanceof FunDec) {
+      FunDec funDec = (FunDec) dec;
+      cExp.dtype = funDec;
+
+      // Get arguments so we can iterate through them and check the function
+      // parameters against the arguments
+
+      // Expected parameters
+      VarDecList funArgs = funDec.params;
+
+      // Passed parameters
+      ExpList pList = cExp.args;
+
+      int numArgs = 0;
+
+      // Iterate through passed parameters and check if they match the expected arg
+      // types / count
+      while (pList != null && pList.head != null) {
+        numArgs++;
+
+        // If the function call has more arguments than the function's expected print an
+        // error and break
+        // Otherwise, we check the types of the arguments and the function's parameters
+        if (funArgs == null || funArgs.head == null || funDec.argc == 0) {
+          error(cExp.row, cExp.col, "Invalid number of arguments for function call: " + cExp.func + " Expected: "
+              + funDec.argc + " Actual: " + numArgs);
+          break;
+        } else {
+
+          // As long as the function has parameters, we need to check if the types of the
+          // passed arguments
+          if (pList.head.dtype != null) {
+            Type argType = funArgs.head.type;
+            Type passedType = pList.head.dtype.type;
+
+            // Check if the types of the arguments and the function's parameters match
+            if (argType.type == Type.ANY) {
+              // Do nothing
+            } else if (passedType.type != argType.type) {
+              error(cExp.row, cExp.col, "Invalid argument type for function call: " + cExp.func + " Expected: "
+                  + argType + " Actual: " + passedType);
+            }
+          }
+
+          // Get next parameter and expected argument
+          pList = pList.tail;
+          funArgs = funArgs.tail;
+        }
+      }
+
+      // If the function call has less arguments than the function's expected print an
+      // error and assign
+      if (funArgs != null && funArgs.head != null && funDec.argc != 0) {
+        error(cExp.row, cExp.col, "Invalid number of arguments for function call: " + cExp.func + " Expected: "
+            + funDec.argc + " Actual: " + numArgs);
+      }
+
+      // Some error occurred when looking up the function definition in the
+      // symbolTable
+    } else {
+      error(cExp.row, cExp.col, "Invalid function call: " + cExp.func);
+    }
+
   }
 
   public void visit(CmpExp exp, int level) {
+
+    if (exp == null) {
+      error(exp.row, exp.col, "Invalid compound expression: NULL");
+      return;
+    }
+
+    // If the compound expression is properly defined, we traverse the declaration
+    // list and expression list
+    if (exp.decList != null) {
+      exp.decList.accept(this, level);
+    }
+
+    if (exp.expList != null) {
+      exp.expList.accept(this, level);
+    }
   }
 
   public void visit(CondExp exp, int level) {
+    // We must check if the condition is either an integer or a boolean
+    if ((exp.dtype.type.type != Type.INT && exp.dtype.type.type != Type.BOOL) || exp.dtype == null) {
+      error(exp.row, exp.col, "Invalid condition type: " + exp.dtype.type);
+    }
   }
 
   public void visit(DecList decList, int level) {
+
+    if (decList == null) {
+      return;
+    }
+
+    indent(level);
+    enterScope("global");
+
+    // Traverse the declaration list and visit each declaration node accordingly
+    while (decList != null) {
+      decList.head.accept(this, level + 1);
+      decList = decList.tail;
+    }
+
+    removeScopeFromTable(level);
+    indent(level);
+    exitScope("global");
   }
 
   public void visit(ErrorDec dec, int level) {
+    insertSymbol(dec, level);
   }
 
   public void visit(ErrorExp exp, int level) {
+    exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid expression");
   }
 
   public void visit(ExpList exp, int level) {
+    if (exp == null) {
+      return;
+    }
+
+    // Traverse the expression list and visit each expression node accordingly
+    while (exp != null) {
+      exp.head.accept(this, level);
+      exp = exp.tail;
+    }
   }
 
   public void visit(FunDec dec, int level) {
+
+    if (dec == null) {
+      error(dec.row, dec.col, "Invalid function declaration: NULL");
+      return;
+    }
+
+    insertSymbol(dec, level);
+    indent(level);
+    enterScope("function " + dec.name);
+
+    if (dec.params != null) {
+      dec.params.accept(this, level + 1);
+    }
+
+    if (dec.body != null) {
+      dec.body.accept(this, level + 1);
+    }
+
+    // We need to check if the function has a return statement
+    checkFunctionReturn(dec.name, ((CmpExp) dec.body).expList, dec.type.type);
+
+    removeScopeFromTable(level + 1);
+    indent(level);
+    exitScope("function " + dec.name);
   }
 
   public void visit(IfExp exp, int level) {
+
+    if (exp == null) {
+      error(exp.row, exp.col, "Invalid if expression: NULL");
+      return;
+    }
+
+    if (exp.cond != null) {
+      exp.cond.accept(this, level);
+      indent(level);
+      enterScope("if statement");
+    }
+
+    if (exp.ifDo != null) {
+      exp.ifDo.accept(this, level + 1);
+
+      // Once we traverse the if statement, we need to remove the scope from the table
+      removeScopeFromTable(level + 1);
+      indent(level);
+      exitScope("if statement");
+    }
+
+    if (exp.elseDo != null) {
+      indent(level);
+      enterScope("else statement");
+      exp.elseDo.accept(this, level + 1);
+
+      // Once we traverse the else statement, we need to remove the scope from the
+      // table
+      removeScopeFromTable(level + 1);
+      indent(level);
+      exitScope("else statement");
+    }
+
   }
 
   public void visit(IndexVar var, int level) {
+
+    if (var == null) {
+      error(var.row, var.col, "Invalid index variable: NULL");
+      return;
+    }
+
+    // Verify that the index variable is properly defined
+    var.ind.accept(this, level);
+
+    int varType = var.ind.dtype.type.type;
+
+    if (varType != Type.INT) {
+      error(var.row, var.col, "Invalid index type. Expected type int.");
+    }
+
+    // Assign the index variable a type declaration so that any lookups calls can
+    // get the type of the expression
+    var.declaration = (VarDec) lookupSymbol(var.name, false, var.row, var.col);
+
+    // Check if the index is within bounds
+    if (var.ind instanceof IntExp) {
+      IntExp ind = (IntExp) var.ind;
+
+      if (ind.value <= 0) {
+        error(ind.row, ind.col, "Invalid array index. Index must be greater than 0.");
+      } else if (ind.value > ((ArrayDec) var.declaration).size.value) {
+        error(ind.row, ind.col, "Index out of bounds. Index: " + ind.value + " Array size: "
+            + ((ArrayDec) var.declaration).size.value);
+      }
+    }
   }
 
   public void visit(IterExp exp, int level) {
+
+    if (exp == null) {
+      error(exp.row, exp.col, "Invalid iteration expression: NULL");
+      return;
+    }
+
+    if (exp.cond == null) {
+      error(exp.row, exp.col, "Invalid iteration condition: NULL");
+    }
+
+    // Check the condition of the while loop
+    exp.cond.accept(this, level);
+
+    if (exp.body != null) {
+      indent(level);
+      enterScope("while loop");
+      exp.body.accept(this, level + 1);
+
+      // Once we traverse the while loop, we need to remove the scope from the table
+      removeScopeFromTable(level + 1);
+      indent(level);
+      exitScope("while loop");
+    }
+
   }
 
   public void visit(IntExp exp, int level) {
+    if (exp != null) {
+      exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.INT), null);
+    } else {
+      error(exp.row, exp.col, "Invalid integer expression: NULL");
+    }
   }
 
   public void visit(NilExp exp, int level) {
+    if (exp != null) {
+      exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.VOID), null);
+    } else {
+      error(exp.row, exp.col, "Invalid nil expression: NULL");
+    }
   }
 
   public void visit(OpExp exp, int level) {
+    if (exp == null) {
+      error(exp.row, exp.col, "Invalid operation expression: NULL");
+      return;
+    }
+
+    // Traverse the tree to the left of the operator
+    if (exp.left != null) {
+      exp.left.accept(this, level);
+    }
+
+    // Traverse the tree to the right of the operator
+    if (exp.right != null) {
+      exp.right.accept(this, level);
+    }
+
+    // If the operation expression is a relational operator, we set type to boolean
+    // Otherwise, we need to check if the types of the left and right hand side of
+    // the operator match
+    if (exp.isRel) {
+      exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.BOOL), null);
+    } else {
+      Type leftType = exp.left.dtype.type;
+      Type rightType = exp.right.dtype.type;
+
+      // Assign a type declaration to the operation expression so that any lookup
+      // calls return the type of the expression
+      if (leftType.type == rightType.type) {
+        exp.dtype = exp.left.dtype;
+      } else {
+        error(exp.row, exp.col, "Invalid operation expression. Expected type: " + leftType);
+        exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid operation expression");
+      }
+    }
   }
 
   public void visit(ReturnExp exp, int level) {
+    if (exp == null) {
+      error(exp.row, exp.col, "Invalid return expression: NULL");
+      return;
+    }
+
+    // Assign the return expression a type declaration so that any lookups calls can
+    // get the return type
+    if (exp.exp != null) {
+      exp.exp.accept(this, level);
+      exp.dtype = exp.exp.dtype;
+    }
   }
 
-  public void visit(SimpleDec dec, int leel) {
+  public void visit(SimpleDec dec, int level) {
+    if (dec == null) {
+      error(dec.row, dec.col, "Invalid simple declaration: NULL");
+      return;
+    }
+
+    // Set the visibility of the simple declaration based on the current scope level
+    if (level > ScopeType.GLOBAL.ordinal()) {
+      dec.visibility = ScopeType.LOCAL.ordinal();
+    } else {
+      dec.visibility = ScopeType.GLOBAL.ordinal();
+    }
+
+    // Add the simple declaration to the symbolTable
+    insertSymbol(dec, level);
   }
 
   public void visit(SimpleVar var, int level) {
+    if (var == null) {
+      error(var.row, var.col, "Invalid simple variable: NULL");
+      return;
+    }
+
+    var.declaration = (VarDec) lookupSymbol(var.name, false, var.row, var.col);
   }
 
   public void visit(Type type, int level) {
+    // Do nothing
   }
 
   public void visit(VarDec dec, int level) {
+    // Do nothing
   }
 
   public void visit(VarDecList decList, int level) {
+
+    // Traverse the variable declaration list and visit each declaration node
+    // accordingly
+    while (decList != null) {
+
+      if (decList.head != null) {
+        decList.head.accept(this, level);
+      }
+      decList = decList.tail;
+    }
+
   }
 
   public void visit(VarExp exp, int level) {
+    // If the variable expression is properly defined, we need traverse the
+    // expression tree
+    if (exp != null) {
+      exp.var.accept(this, level);
+
+      // Get declaration type of the variable expression from the symbolTable
+      exp.dtype = lookupSymbol(exp.var.name, false, exp.row, exp.col);
+    } else {
+      error(exp.row, exp.col, "Invalid variable expression: NULL");
+      exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid variable expression");
+    }
   }
 
 }

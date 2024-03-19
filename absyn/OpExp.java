@@ -17,6 +17,7 @@ public class OpExp extends Exp {
   public Exp left;
   public int op;
   public Exp right;
+  public Boolean isRel = false;
 
   public OpExp( int row, int col, Exp left, int op, Exp right ) {
     this.row = row;
@@ -24,6 +25,10 @@ public class OpExp extends Exp {
     this.left = left;
     this.op = op;
     this.right = right;
+    
+    // Check if the operation uses a relational operator
+    if (op == EQ || op == NE || op == LT || op == LE || op == GT || op == GE)
+      isRel = true;
   }
 
   public void accept( AbsynVisitor visitor, int level ) {

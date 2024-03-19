@@ -2,7 +2,7 @@
    compute the greatest common divisor called gcd */
 
 int gcd(int u, int v) {
-  if (v == 0) return u;
+  if (v == 0);
   else return gcd(v, u - u/v*v);
 }
 

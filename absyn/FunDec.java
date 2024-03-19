@@ -2,8 +2,6 @@ package absyn;
 
 public class FunDec extends Declaration {
 
-  public Type type;
-  public String name;
   public VarDecList params;
   public Exp body;
   public int argc;
@@ -26,5 +24,10 @@ public class FunDec extends Declaration {
 
   public void accept( AbsynVisitor visitor, int level ) {
     visitor.visit( this, level );
+  }
+
+  @Override
+  public String toString() {
+    return "function '" + this.type + " " + this.name + "()' with " + this.argc + " argument(s)";
   }
 }
