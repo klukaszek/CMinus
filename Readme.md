@@ -16,11 +16,11 @@ This will generate the following:
 
 To test the scanner:
 
-`java -cp /usr/share/java/cup.jar Scanner < file.cm`
+`java -cp /usr/share/java/cup.jar:. Scanner < file.cm`
 
 To test the C Minus parser:
 
-`java -cp /usr/share/java/cup.jar  CM file.cm [-a: print AST][-s: semantics and symbols]`
+`java -cp /usr/share/java/cup.jar:. CM file.cm [-a: print AST][-s: semantics and symbols]`
 
 The -a flag prints an AST
 
@@ -28,7 +28,7 @@ The -s flag shows the semantic analysis and the building of the symbol table.
 
 To redirect the output:
 
-`java -cp /usr/share/java/cup.jar  CM file.cm -a > output.txt`
+`java -cp /usr/share/java/cup.jar:. CM file.cm -a > output.txt`
 
 To remove the files:
 `make clean`
