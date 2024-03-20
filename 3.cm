@@ -1,0 +1,38 @@
+/* 
+This program tests the following:
+  - Invalid array assignment
+  - Invalid assignment to a variable
+  - Invalid expression on the right hand side of an assignment
+*/
+
+int x;
+bool bbb[10];
+
+int foo(int x) {
+  return x;
+}
+
+void main(void) { 
+  int l;
+
+  int arr[10];
+  bbb[0] = true;
+
+  /* Invalid array assignment: Expects bool */
+  bbb[1] = 12;
+  
+  if (x) {
+    int x;
+
+    /* This should throw two errors:
+        1. Invalid expression on the right
+        2. Invalid assignment to x
+    */
+    x = ;
+  }
+  else {
+    int x;
+    x = 2;
+  }
+
+}

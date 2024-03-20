@@ -1,0 +1,49 @@
+
+/* 
+This program tests the following:
+  - Proper type checking for return statements.
+  - Proper type checking for assignments.
+  - Proper array initialization.
+  - Proper array index access.
+  - Proper scope resolution.
+  - Function return from if-else statement.
+  - input() and output() predefined functions
+*/
+
+int x;
+bool bbb[10];
+
+/* This function has a return type of void, but it returns an integer. */
+int foo(int x) {
+  return x;
+}
+
+int bar(int x) {
+  if (x > 0) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+/* This function has a return type of int, but it returns nothing. */
+void main(void) { 
+  int l;
+  int arr[10];
+
+  x = input();
+
+  if (x) {
+    int x;
+    x = 4;
+
+    arr[bar(x)] = 1;
+  }
+  else {
+    int x;
+    x = 2;
+  }
+
+  output(arr[0]);
+
+}

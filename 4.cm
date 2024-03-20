@@ -1,0 +1,32 @@
+/* 
+This program tests the following:
+  - Invalid function return types for foo
+  - Invalid assignment of a relational operation (boolean) to an integer
+  - Missing return statement in main
+*/
+
+int x;
+bool bbb[10];
+
+/* This function has a return type of void, but it returns an integer. */
+void foo(int x) {
+  return x;
+}
+
+/* This function has a return type of int, but it returns nothing. */
+int main(void) { 
+  int l;
+
+  int arr[10];
+  
+  if (x) {
+    int x;
+
+    /* We are trying to assign a boolean to an integer. */
+    x = (5 > 4);
+  }
+  else {
+    int x;
+    x = 2;
+  }
+}

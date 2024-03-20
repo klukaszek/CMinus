@@ -1,0 +1,43 @@
+/*
+  This program tests several different error cases:
+    - referencing an undeclared function foo() in several different contexts
+    - functions with incorrect return types
+    - functions with an incorrect number of arguments
+    - functions with an incorrect type of argument 
+    - function with a missing return statement
+*/
+
+void main(void) {
+  int a[2]; 
+  int x;
+  x = input();
+  a[x] = 1;
+  a[foo()] = 2;
+
+  if (x) output(x);
+  if (foo()) output(foo());
+}
+
+void test(int z) {
+  int x;
+  x = foo();
+}
+
+int fun(int fff ) {
+  int x; 
+  int y;
+
+  /* Assign incorrect type to int through RelOp */
+  x = (5 < 3);
+
+  /* Assign incorrect type through OpExp */
+  /* Call test() with incorrect number of arguments */ 
+  /* Call test() with incorrect type of argument */
+  y = x + test(x, y);
+}
+
+void funtwo(void) {
+  int x;
+  x = 2;
+  return x;
+}

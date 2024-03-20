@@ -129,7 +129,6 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // If the symbol does not exist in the symbolTable, return an error
     errorSemanticAnalysis = true;
-    error(row, col, "Symbol " + name + " not found");
     return new ErrorDec(row, col, null, "Symbol " + name + " not found");
   }
 
@@ -181,10 +180,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // type
   // This function is called from checkFunctionReturnType()
   private void checkReturnType(String name, ReturnExp exp, int expectedType) {
-
+    
     if (exp.getReturnType() != expectedType) {
+      String type = typeToString(exp.getReturnType());
+
       error(exp.row, exp.col,
-          "Return type does not match function " + name + " expected return type: " + typeToString(expectedType));
+          "Return type '" + type + "' does not match function. '" + name + "()' expected return type: " + typeToString(expectedType));
     }
 
   }
@@ -198,10 +199,11 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // This function can be called recursively to check for return statements in
   // nested scopes
   //
-  // I use a quiet flag to suppress error messages when checking for return when recursively calling this function
+  // I use a quiet flag to suppress error messages when checking for return when
+  // recursively calling this function
   private boolean checkFunctionReturn(String name, ExpList expList, int returnType, boolean quiet) {
 
-    assert (returnType != Type.VOID || returnType != Type.INT || returnType != Type.BOOL);
+    assert (returnType == Type.VOID || returnType == Type.INT || returnType == Type.BOOL);
     assert (expList != null);
 
     Exp current = null;
@@ -377,12 +379,17 @@ public class SemanticAnalyzer implements AbsynVisitor {
       error(decArr.row, decArr.col, "Invalid array declaration. Array type cannot be void.");
     }
 
-    // Ensure that the array size is greater than 0
-    if (decArr.size.value < 0) {
-      error(decArr.row, decArr.col, "Array size must be greater than 0");
-    } else if (decArr.size.value == 0) {
-      warn(decArr.row, decArr.col,
-          "Array size not defined. Make sure this is a function parameter and not a variable declaration.");
+    if (!(decArr.size instanceof IntExp)) {
+      error(decArr.row, decArr.col, "Invalid array size. Array size must be an integer.");
+      // Ensure that the array size is greater than 0
+    } else {
+      IntExp size = (IntExp) decArr.size;
+      if (size.value < 0) {
+        error(decArr.row, decArr.col, "Array size must be greater than 0");
+      } else if (((IntExp) decArr.size).value == 0) {
+        warn(decArr.row, decArr.col,
+            "Array size not defined. Make sure this is a function parameter and not a variable declaration.");
+      }
     }
 
     // Set the visibility of the array declaration based on the current scope level
@@ -409,16 +416,33 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
       Declaration leftDec = lookupSymbol(aExp.var.name, false, aExp.row, aExp.col);
 
+      if (leftDec.type == null) {
+        aExp.dtype = new ErrorDec(aExp.row, aExp.col, null, "Invalid assignment expression. Symbol not found.");
+        return;
+      }
+
       // Get type of left hand side of the assignment expression, and the type of the
       // associated expression
       Type varType = leftDec.type;
-      Type expType = aExp.exp.dtype.type;
+      Type expType;
+      
+      if (aExp.exp.dtype == null) {
+        expType = new Type(aExp.exp.row, aExp.exp.col, Type.UNKNOWN);
+      } else {
+        expType = aExp.exp.dtype.type;
+      }
+
+      if (varType == null || expType == null) {
+        error(aExp.row, aExp.col, "Invalid assignment expression.");
+        aExp.dtype = new ErrorDec(aExp.row, aExp.col, null, "Invalid assignment expression. Type not found.");
+        return;
+      }
 
       // Check if the types of the left hand side and right hand side of the
       // assignment expression match
       if (varType.type != expType.type) {
         error(aExp.row, aExp.col,
-            "Type mismatch in assignment expression. Expected type: " + varType + " Actual type: " + expType);
+            "Type mismatch in assignment expression. Expected type: " + varType + " | Actual type: " + expType);
       }
 
       // Assign the assignment expression a type declaration so that any lookups calls
@@ -433,7 +457,6 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   public void visit(BoolExp exp, int level) {
     if (exp != null) {
-      System.out.println("BoolExp: " + exp.value);
       exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.BOOL), null);
     } else {
       error(exp.row, exp.col, "Invalid boolean expression: NULL");
@@ -484,7 +507,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
         // Otherwise, we check the types of the arguments and the function's parameters
         if (funArgs == null || funArgs.head == null || funDec.argc == 0) {
           error(cExp.row, cExp.col, "Invalid number of arguments for function call: " + cExp.func + " Expected: "
-              + funDec.argc + " Actual: " + numArgs);
+              + funDec.argc + " | Actual: " + numArgs);
           break;
         } else {
 
@@ -499,7 +522,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
               // Do nothing
             } else if (passedType.type != argType.type) {
               error(cExp.row, cExp.col, "Invalid argument type for function call: " + cExp.func + " Expected: "
-                  + argType + " Actual: " + passedType);
+                  + argType + " | Actual: " + passedType);
             }
           }
 
@@ -513,7 +536,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
       // error and assign
       if (funArgs != null && funArgs.head != null && funDec.argc != 0) {
         error(cExp.row, cExp.col, "Invalid number of arguments for function call: " + cExp.func + " Expected: "
-            + funDec.argc + " Actual: " + numArgs);
+            + funDec.argc + " | Actual: " + numArgs);
       }
 
       // Some error occurred when looking up the function definition in the
@@ -616,7 +639,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
       dec.body.accept(this, level + 1);
       // We need to check if the function has a return statement
-      checkFunctionReturn(dec.name, ((CmpExp) dec.body).expList, dec.type.type, true);
+      checkFunctionReturn(dec.name, ((CmpExp) dec.body).expList, dec.type.type, false);
 
       removeScopeFromTable(level + 1);
       indent(level);
@@ -672,25 +695,36 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // Verify that the index variable is properly defined
     var.ind.accept(this, level);
 
+    if (var.ind.dtype == null) {
+      error(var.row, var.col, "Invalid index variable.");
+      return;
+    }
+
     int varType = var.ind.dtype.type.type;
 
     if (varType != Type.INT) {
-      error(var.row, var.col, "Invalid index type. Expected type int.");
+      error(var.row, var.col, "Invalid index type. Expected: int | Actual: " + typeToString(varType));
     }
 
     // Assign the index variable a type declaration so that any lookups calls can
     // get the type of the expression
     var.declaration = (VarDec) lookupSymbol(var.name, false, var.row, var.col);
 
+    if (var.declaration.type == null) {
+      error(var.row, var.col, "Invalid index variable. Symbol '" + var.declaration.name + "' not found.");
+      return;
+    }
+
     // Check if the index is within bounds
     if (var.ind instanceof IntExp) {
       IntExp ind = (IntExp) var.ind;
+      IntExp size = (IntExp) ((ArrayDec) var.declaration).size;
 
-      if (ind.value <= 0) {
-        error(ind.row, ind.col, "Invalid array index. Index must be greater than 0.");
-      } else if (ind.value > ((ArrayDec) var.declaration).size.value) {
+      if (ind.value < 0) {
+        error(ind.row, ind.col, "Invalid array index. Index must be >= 0.");
+      } else if (ind.value > size.value) {
         error(ind.row, ind.col, "Index out of bounds. Index: " + ind.value + " Array size: "
-            + ((ArrayDec) var.declaration).size.value);
+            + size.value);
       }
     }
   }
@@ -761,10 +795,23 @@ public class SemanticAnalyzer implements AbsynVisitor {
       exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.BOOL), null);
     } else {
       Type leftType = exp.left.dtype.type;
+
+      if (exp.right.dtype == null) {
+        exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid operation expression");
+        return;
+      }
+
       Type rightType = exp.right.dtype.type;
 
       // Assign a type declaration to the operation expression so that any lookup
       // calls return the type of the expression
+
+      if (leftType == null || rightType == null) {
+        error(exp.row, exp.col, "Invalid expression.");
+        exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid expression");
+        return;
+      }
+
       if (leftType.type == rightType.type) {
         exp.dtype = exp.left.dtype;
       } else {
@@ -816,6 +863,11 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     var.declaration = (VarDec) lookupSymbol(var.name, false, var.row, var.col);
+
+    if (var.declaration.type == null) {
+      error(var.row, var.col, "Symbol '" + var.name + "' is not defined.");
+      return;
+    }
   }
 
   public void visit(Type type, int level) {

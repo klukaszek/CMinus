@@ -1,0 +1,40 @@
+/*
+
+This program tests for redefinitions of variables in the same scope, invalid array definitions, and references to undefined variables.
+
+*/
+
+int x;
+bool bbb[10];
+
+int foo(int x) {
+  return x;
+}
+
+void main(void) { 
+  int l;
+  
+  /* Redefinition of l */
+  /* This should be a warning */
+  int l;
+  
+  /* Array of negative size */
+  /* This should be an error */
+  int arr[-1];
+  
+  /* Redefinition of x in a nested scope */
+  /* This should not be an error */
+  if (x) {
+    int x;
+    x = 1;
+
+    /* Assignment to undefined variable */
+    /* This should be an error */
+    z = 4;
+  }
+  else {
+    int x;
+    x = 2;
+  }
+
+}

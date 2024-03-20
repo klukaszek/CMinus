@@ -6,9 +6,9 @@ public class ArrayDec extends VarDec {
 
   // We need to store the size of the array as an IntExp instead of an int because
   // the size of the array can be a variable
-  public IntExp size;
+  public Exp size;
 
-  public ArrayDec(int row, int col, Type type, String name, IntExp size) {
+  public ArrayDec(int row, int col, Type type, String name, Exp size) {
     this.row = row;
     this.col = col;
     this.type = type;
@@ -22,7 +22,10 @@ public class ArrayDec extends VarDec {
 
   @Override
   public String toString() {
-    return type + ": " + name + "[" + size + "]";
+    if (this.size instanceof IntExp) {
+      return type + ": " + name + "[" + ((IntExp) this.size).value + "]";
+    }
+    return type + ": " + name + "[ invalid size ]";
   }
 
 }
