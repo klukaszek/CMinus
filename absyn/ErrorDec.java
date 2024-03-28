@@ -9,8 +9,8 @@ public class ErrorDec extends VarDec {
     this.name = name;
   }
 
-  public void accept( AbsynVisitor visitor, int level ) {
-    visitor.visit( this, level );
+  public void accept( AbsynVisitor visitor, int level, boolean isAddr) {
+    visitor.visit( this, level, isAddr );
   }
 
   @Override

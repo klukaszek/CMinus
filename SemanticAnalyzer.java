@@ -47,7 +47,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // This is identical to calling the accept method on the root node, I just
   // wanted to make it explicit
   public void analyze(Absyn rootNode) {
-    rootNode.accept(this, ScopeType.GLOBAL.ordinal());
+    rootNode.accept(this, ScopeType.GLOBAL.ordinal(), false);
   }
 
   // Primary function used to build the symbol symbol and check for redeclarations
@@ -369,7 +369,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(ArrayDec decArr, int level) {
+  public void visit(ArrayDec decArr, int level, boolean isAddr) {
 
     if (decArr == null) {
       return;
@@ -394,16 +394,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // Set the visibility of the array declaration based on the current scope level
     if (level > ScopeType.GLOBAL.ordinal()) {
-      decArr.visibility = ScopeType.LOCAL.ordinal();
+      decArr.nestLevel = ScopeType.LOCAL.ordinal();
     } else {
-      decArr.visibility = ScopeType.GLOBAL.ordinal();
+      decArr.nestLevel = ScopeType.GLOBAL.ordinal();
     }
 
     // Add the array declaration to the symbolTable
     insertSymbol(decArr, level);
   }
 
-  public void visit(AssignExp aExp, int level) {
+  public void visit(AssignExp aExp, int level, boolean isAddr) {
 
     if (aExp == null) {
       return;
@@ -411,8 +411,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // Check left hand side of the assignment expression
     if (aExp.var != null) {
-      aExp.var.accept(this, level);
-      aExp.exp.accept(this, level);
+      aExp.var.accept(this, level, isAddr);
+      aExp.exp.accept(this, level, isAddr);
 
       Declaration leftDec = lookupSymbol(aExp.var.name, false, aExp.row, aExp.col);
 
@@ -449,13 +449,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
       // can get the type of the expression
       aExp.dtype = new SimpleDec(aExp.row, aExp.col, varType, null);
     } else {
-      aExp.exp.accept(this, level);
+      aExp.exp.accept(this, level, isAddr);
       error(aExp.row, aExp.col, "Invalid assignment expression");
       aExp.dtype = new ErrorDec(aExp.row, aExp.col, null, null);
     }
   }
 
-  public void visit(BoolExp exp, int level) {
+  public void visit(BoolExp exp, int level, boolean isAddr) {
     if (exp != null) {
       exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.BOOL), null);
     } else {
@@ -464,7 +464,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(CallExp cExp, int level) {
+  public void visit(CallExp cExp, int level, boolean isAddr) {
 
     if (cExp == null) {
       return;
@@ -473,7 +473,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // If the function call is properly defined, we need to accept the arguments and
     // check them properly
     if (cExp.args != null && cExp.args.head != null) {
-      cExp.args.accept(this, level);
+      cExp.args.accept(this, level, isAddr);
     }
 
     // Lookup the function call in the symbolTable to check if it exists
@@ -547,7 +547,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   }
 
-  public void visit(CmpExp exp, int level) {
+  public void visit(CmpExp exp, int level, boolean isAddr) {
 
     if (exp == null) {
       error(exp.row, exp.col, "Invalid compound expression: NULL");
@@ -557,22 +557,22 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // If the compound expression is properly defined, we traverse the declaration
     // list and expression list
     if (exp.decList != null) {
-      exp.decList.accept(this, level);
+      exp.decList.accept(this, level, isAddr);
     }
 
     if (exp.expList != null) {
-      exp.expList.accept(this, level);
+      exp.expList.accept(this, level, isAddr);
     }
   }
 
-  public void visit(CondExp exp, int level) {
+  public void visit(CondExp exp, int level, boolean isAddr) {
     // We must check if the condition is either an integer or a boolean
     if ((exp.dtype.type.type != Type.INT && exp.dtype.type.type != Type.BOOL) || exp.dtype == null) {
       error(exp.row, exp.col, "Invalid condition type: " + exp.dtype.type);
     }
   }
 
-  public void visit(DecList decList, int level) {
+  public void visit(DecList decList, int level, boolean isAddr) {
 
     if (decList == null) {
       return;
@@ -583,7 +583,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // Traverse the declaration list and visit each declaration node accordingly
     while (decList != null) {
-      decList.head.accept(this, level + 1);
+      decList.head.accept(this, level + 1, isAddr);
       decList = decList.tail;
     }
 
@@ -592,27 +592,27 @@ public class SemanticAnalyzer implements AbsynVisitor {
     exitScope("global");
   }
 
-  public void visit(ErrorDec dec, int level) {
+  public void visit(ErrorDec dec, int level, boolean isAddr) {
     insertSymbol(dec, level);
   }
 
-  public void visit(ErrorExp exp, int level) {
+  public void visit(ErrorExp exp, int level, boolean isAddr) {
     exp.dtype = new ErrorDec(exp.row, exp.col, null, "Invalid expression");
   }
 
-  public void visit(ExpList exp, int level) {
+  public void visit(ExpList exp, int level, boolean isAddr) {
     if (exp == null) {
       return;
     }
 
     // Traverse the expression list and visit each expression node accordingly
     while (exp != null) {
-      exp.head.accept(this, level);
+      exp.head.accept(this, level, isAddr);
       exp = exp.tail;
     }
   }
 
-  public void visit(FunDec dec, int level) {
+  public void visit(FunDec dec, int level, boolean isAddr) {
 
     if (dec == null) {
       error(dec.row, dec.col, "Invalid function declaration: NULL");
@@ -633,11 +633,11 @@ public class SemanticAnalyzer implements AbsynVisitor {
       if (dec.params != null) {
         // If the function head is simply "void", we know there are no parameters
         if (dec.params.head.type.type != Type.VOID) {
-          dec.params.accept(this, level + 1);
+          dec.params.accept(this, level + 1, isAddr);
         }
       }
 
-      dec.body.accept(this, level + 1);
+      dec.body.accept(this, level + 1, isAddr);
       // We need to check if the function has a return statement
       checkFunctionReturn(dec.name, ((CmpExp) dec.body).expList, dec.type.type, false);
 
@@ -649,7 +649,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(IfExp exp, int level) {
+  public void visit(IfExp exp, int level, boolean isAddr) {
 
     if (exp == null) {
       error(exp.row, exp.col, "Invalid if expression: NULL");
@@ -657,13 +657,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     if (exp.cond != null) {
-      exp.cond.accept(this, level);
+      exp.cond.accept(this, level, isAddr);
       indent(level);
       enterScope("if statement");
     }
 
     if (exp.ifDo != null) {
-      exp.ifDo.accept(this, level + 1);
+      exp.ifDo.accept(this, level + 1, isAddr);
 
       // Once we traverse the if statement, we need to remove the scope from the table
       removeScopeFromTable(level + 1);
@@ -674,7 +674,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     if (exp.elseDo != null) {
       indent(level);
       enterScope("else statement");
-      exp.elseDo.accept(this, level + 1);
+      exp.elseDo.accept(this, level + 1, isAddr);
 
       // Once we traverse the else statement, we need to remove the scope from the
       // table
@@ -685,7 +685,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   }
 
-  public void visit(IndexVar var, int level) {
+  public void visit(IndexVar var, int level, boolean isAddr) {
 
     if (var == null) {
       error(var.row, var.col, "Invalid index variable: NULL");
@@ -693,7 +693,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     // Verify that the index variable is properly defined
-    var.ind.accept(this, level);
+    var.ind.accept(this, level, isAddr);
 
     if (var.ind.dtype == null) {
       error(var.row, var.col, "Invalid index variable.");
@@ -729,7 +729,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(IterExp exp, int level) {
+  public void visit(IterExp exp, int level, boolean isAddr) {
 
     if (exp == null) {
       error(exp.row, exp.col, "Invalid iteration expression: NULL");
@@ -741,12 +741,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     // Check the condition of the while loop
-    exp.cond.accept(this, level);
+    exp.cond.accept(this, level, isAddr);
 
     if (exp.body != null) {
       indent(level);
       enterScope("while loop");
-      exp.body.accept(this, level + 1);
+      exp.body.accept(this, level + 1, isAddr);
 
       // Once we traverse the while loop, we need to remove the scope from the table
       removeScopeFromTable(level + 1);
@@ -756,7 +756,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   }
 
-  public void visit(IntExp exp, int level) {
+  public void visit(IntExp exp, int level, boolean isAddr) {
     if (exp != null) {
       exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.INT), null);
     } else {
@@ -764,7 +764,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(NilExp exp, int level) {
+  public void visit(NilExp exp, int level, boolean isAddr) {
     if (exp != null) {
       exp.dtype = new SimpleDec(exp.row, exp.col, new Type(exp.row, exp.col, Type.VOID), null);
     } else {
@@ -772,7 +772,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(OpExp exp, int level) {
+  public void visit(OpExp exp, int level, boolean isAddr) {
     if (exp == null) {
       error(exp.row, exp.col, "Invalid operation expression: NULL");
       return;
@@ -780,12 +780,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // Traverse the tree to the left of the operator
     if (exp.left != null) {
-      exp.left.accept(this, level);
+      exp.left.accept(this, level, isAddr);
     }
 
     // Traverse the tree to the right of the operator
     if (exp.right != null) {
-      exp.right.accept(this, level);
+      exp.right.accept(this, level, isAddr);
     }
 
     // If the operation expression is a relational operator, we set type to boolean
@@ -821,7 +821,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(ReturnExp exp, int level) {
+  public void visit(ReturnExp exp, int level, boolean isAddr) {
     if (exp == null) {
       error(exp.row, exp.col, "Invalid return expression: NULL");
       return;
@@ -830,12 +830,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // Assign the return expression a type declaration so that any lookups calls can
     // get the return type
     if (exp.exp != null) {
-      exp.exp.accept(this, level);
+      exp.exp.accept(this, level, isAddr);
       exp.dtype = exp.exp.dtype;
     }
   }
 
-  public void visit(SimpleDec dec, int level) {
+  public void visit(SimpleDec dec, int level, boolean isAddr) {
     if (dec == null) {
       error(dec.row, dec.col, "Invalid simple declaration: NULL");
       return;
@@ -847,16 +847,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     // Set the visibility of the simple declaration based on the current scope level
     if (level > ScopeType.GLOBAL.ordinal()) {
-      dec.visibility = ScopeType.LOCAL.ordinal();
+      dec.nestLevel = ScopeType.LOCAL.ordinal();
     } else {
-      dec.visibility = ScopeType.GLOBAL.ordinal();
+      dec.nestLevel = ScopeType.GLOBAL.ordinal();
     }
 
     // Add the simple declaration to the symbolTable
     insertSymbol(dec, level);
   }
 
-  public void visit(SimpleVar var, int level) {
+  public void visit(SimpleVar var, int level, boolean isAddr) {
     if (var == null) {
       error(var.row, var.col, "Invalid simple variable: NULL");
       return;
@@ -870,33 +870,33 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
   }
 
-  public void visit(Type type, int level) {
+  public void visit(Type type, int level, boolean isAddr) {
     // Do nothing
   }
 
-  public void visit(VarDec dec, int level) {
+  public void visit(VarDec dec, int level, boolean isAddr) {
     // Do nothing
   }
 
-  public void visit(VarDecList decList, int level) {
+  public void visit(VarDecList decList, int level, boolean isAddr) {
 
     // Traverse the variable declaration list and visit each declaration node
     // accordingly
     while (decList != null) {
 
       if (decList.head != null) {
-        decList.head.accept(this, level);
+        decList.head.accept(this, level, isAddr);
       }
       decList = decList.tail;
     }
 
   }
 
-  public void visit(VarExp exp, int level) {
+  public void visit(VarExp exp, int level, boolean isAddr) {
     // If the variable expression is properly defined, we need traverse the
     // expression tree
     if (exp != null) {
-      exp.var.accept(this, level);
+      exp.var.accept(this, level, isAddr);
 
       // Get declaration type of the variable expression from the symbolTable
       exp.dtype = lookupSymbol(exp.var.name, false, exp.row, exp.col);

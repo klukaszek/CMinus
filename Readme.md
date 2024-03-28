@@ -1,4 +1,4 @@
-# CIS*4650 Compilers Checkpoint 1
+# CIS*4650 Compilers Checkpoint 2
 
 ## Author: Kyle Lukaszek
 ## ID: 1113798

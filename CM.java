@@ -53,7 +53,7 @@ public class CM {
       if (flags.contains(Flag.AST)) {
         System.out.println("The abstract syntax tree is:");
         AbsynVisitor visitor = new ShowTreeVisitor();
-        result.accept(visitor, 0);
+        result.accept(visitor, 0, false);
       }
 
       if (flags.contains(Flag.SEMANTIC)) {

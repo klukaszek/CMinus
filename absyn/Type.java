@@ -22,8 +22,8 @@ public class Type extends Absyn {
     return new Type(row, col, UNKNOWN);
   }  
 
-  public void accept( AbsynVisitor visitor, int level ) {
-    visitor.visit( this, level );
+  public void accept( AbsynVisitor visitor, int level, boolean isAddr) {
+    visitor.visit( this, level, isAddr );
   }
 
   @Override
