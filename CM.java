@@ -25,13 +25,14 @@ public class CM {
 
   enum Flag {
     AST,
-    SEMANTIC
+    SEMANTIC,
+    CODEGEN
   }
 
   public static void main(String[] args) throws Exception {
 
     if (args.length == 0) {
-      System.out.println("Usage: java CM <filename.cm> [-a][-s]");
+      System.out.println("Usage: java CM <filename.cm> [-a][-s][-c]");
       return;
     }
 
@@ -48,6 +49,9 @@ public class CM {
         if (args[i].equals("-s")) {
           flags.add(Flag.SEMANTIC);
         }
+        if (args[i].equals("-c")) {
+          flags.add(Flag.CODEGEN);
+        }
       }
       
       if (flags.contains(Flag.AST)) {
@@ -59,6 +63,11 @@ public class CM {
       if (flags.contains(Flag.SEMANTIC)) {
         SemanticAnalyzer analyzer = new SemanticAnalyzer();
         analyzer.analyze(result);
+      }
+
+      if (flags.contains(Flag.CODEGEN)) {
+        CodeGenerator generator = new CodeGenerator();
+        generator.visit(result, args[0]);
       }
 
       System.out.println("\nParsing completed");
