@@ -1,4 +1,5 @@
 /* 
+Semantics Test - Not guaranteed to run.
 This program tests the following:
   - Invalid array assignment
   - Invalid assignment to a variable

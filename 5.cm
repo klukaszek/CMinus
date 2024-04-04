@@ -1,4 +1,5 @@
 /*
+  Semantics test - Not guaranteed to run.
   This program tests several different error cases:
     - referencing an undeclared function foo() in several different contexts
     - functions with incorrect return types

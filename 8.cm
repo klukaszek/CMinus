@@ -1,5 +1,9 @@
-/* test function call with multiple arguments */
-/* test nested block within function */
+/* 
+  Code Gen Test - Guaranteed to run
+  test function call with multiple arguments
+  test nested block within function 
+  Should throw a warning stating that there is a variable redeclaration
+*/
 int test(int a, int b){
     output(a);
     return b;

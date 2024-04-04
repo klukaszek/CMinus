@@ -1,4 +1,7 @@
-/* Test prelude generation, I/O routines, and finale generation */
+/* 
+Code Gen Test - Guaranteed to execute 
+Test prelude generation, I/O routines, and finale generation
+*/
 void main(void) {
   int x;
   x = input();

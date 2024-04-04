@@ -1,4 +1,7 @@
-/* Test if statement and conditional logic*/
+/* 
+Code Gen Test - Guaranteed to execute
+Test if statement and conditional logic for code generation 
+*/
 
 int y;
 bool x;

@@ -1,4 +1,7 @@
-/* testing arithmetic operations */
+/* 
+Code Gen Test - Guaranteed to run
+testing arithmetic operations 
+*/
 void main(void) {
   int x;
   int y;

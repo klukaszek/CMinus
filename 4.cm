@@ -1,4 +1,5 @@
 /* 
+Semantics Test - Not guaranteed to run.
 This program tests the following:
   - Invalid function return types for foo
   - Invalid assignment of a relational operation (boolean) to an integer

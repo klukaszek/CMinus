@@ -1,4 +1,7 @@
-/* Attempt to test setting array values and printing them out */
+/* 
+Code Gen Test - This test fails because I broke the array indexing code and gave up on fixing it 
+Attempt to test setting array values and printing them out
+*/
 void main(void){
   int x[5];
   int i;
