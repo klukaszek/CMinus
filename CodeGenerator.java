@@ -250,8 +250,6 @@ public class CodeGenerator implements AbsynVisitor {
 
     emitComment("-> assign");
 
-    emitComment(exp.var.getClass().getName());
-
     // Check if we are on the left side of the assignment
     // If we are on the left side, we have to set isAddr to true
     if (exp.var instanceof SimpleVar) {
@@ -578,7 +576,6 @@ public class CodeGenerator implements AbsynVisitor {
 
   public void visit(IterExp exp, int offset, boolean isAddr) {
 
-    emitComment(exp.cond.getClass().getName());
     emitComment("-> while");
     emitComment("while: jump after body comes back here");
 
@@ -677,7 +674,6 @@ public class CodeGenerator implements AbsynVisitor {
   public void visit(OpExp exp, int offset, boolean isAddr) {
 
     emitComment("-> op");
-    emitComment(exp.toString());
 
     // Generate machine code for the left operand
     exp.left.accept(this, offset, false);
