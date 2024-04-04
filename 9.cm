@@ -1,0 +1,27 @@
+/* testing arithmetic operations */
+void main(void) {
+  int x;
+  int y;
+
+  x = 2;
+  y = 4;
+  
+  /* should be 4 */
+  y = y / x * x;
+  
+  output(y);
+
+  y = 4;
+
+  /* should be 1 */
+  y = y / (x * x);
+
+  output(y);
+
+  y = 4;
+
+  /* should be 10 */
+  y = y + x * 3;
+
+  output(y);
+}

@@ -1,0 +1,39 @@
+/* Test if statement and conditional logic*/
+
+int y;
+bool x;
+
+void main(void) {
+  y = input();
+  
+  /* 1 if y > 0, 2 otherwise */
+  if (y > 3) {
+    output(1);
+  } else {
+    output(2);
+  }
+  
+  /* 1 if y < 0, 2 otherwise */
+  if (y < 1) {
+    output(1);
+  } else {
+    output(2);
+  }
+
+  /* 1 if y == 0, 2 otherwise */
+  if (y != 1) {
+    output(1);
+  } else {
+    output(2);
+  }
+  
+  /* Test boolean assignment using conditional logic */
+  x = ( (y / 2) == 1 );
+  
+  /* testing boolean */
+  if (x == true) {
+    output(1);
+  } else {
+    output(2);
+  }
+}

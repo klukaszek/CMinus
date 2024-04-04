@@ -142,6 +142,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     indent(level);
     System.out.println("IfExp:");
     level++;
+
     exp.cond.accept(this, level, isAddr);
 
     if (exp.ifDo != null)

@@ -1,0 +1,21 @@
+/* test function call with multiple arguments */
+/* test nested block within function */
+int test(int a, int b){
+    output(a);
+    return b;
+}
+
+void main(void){
+  int a;
+  int b;
+  a = 3;
+  b = 4;
+  output(test(a, b));
+  
+  /* Nested block within function */
+  {
+    int a;
+    a = 5;
+    output(a);
+  }
+}

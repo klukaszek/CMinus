@@ -4,6 +4,7 @@ void main(void) {
 
   x = input();
   fac = 1;
+
   while (x > 1) {
     fac = fac * x;
     x = x - 1;

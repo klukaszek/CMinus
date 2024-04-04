@@ -2,8 +2,13 @@
    compute the greatest common divisor called gcd */
 
 int gcd(int u, int v) {
-  if (v == 0) return u;
-  else return gcd(v, u - u/v*v);
+  if (v == 0) {
+    return u;
+  } else {
+    int x;
+    x = u - u / v * v;
+    return gcd(v, x);
+  }
 }
 
 void main(void) {
@@ -12,5 +17,6 @@ void main(void) {
 
   x = input();
   y = input();
+
   output(gcd(x, y));
 }

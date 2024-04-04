@@ -1,0 +1,12 @@
+/* Attempt to test setting array values and printing them out */
+void main(void){
+  int x[5];
+  int i;
+  
+  x[0] = 1;
+
+  i = 4;
+  i = i + 1;
+  output(x[i]);
+
+}

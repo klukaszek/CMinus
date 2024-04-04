@@ -17,6 +17,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   private static final int SPACES = 4;
 
+  private static boolean silent = false;
+
   // Define an enum for the scope type (global or local)
   private enum ScopeType {
     GLOBAL, LOCAL
@@ -28,7 +30,11 @@ public class SemanticAnalyzer implements AbsynVisitor {
   // symbol
   private HashMap<String, ArrayList<NodeType>> symbolTable;
 
-  public SemanticAnalyzer() {
+  public SemanticAnalyzer(boolean isSilent) {
+    
+    // Set the silent flag to suppress output
+    silent = isSilent;
+
     symbolTable = new HashMap<String, ArrayList<NodeType>>();
 
     // Predefined functions stated in the sematic requirements of the specifications
@@ -37,7 +43,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     VarDecList outputParams = new VarDecList(new SimpleDec(-1, -1, new Type(-1, -1, Type.ANY), "output"), null);
     FunDec output = new FunDec(-1, -1, new Type(-1, -1, Type.VOID), "output", outputParams, null);
 
-    System.out.println("Predefined functions:");
+    log("Predefined functions:");
 
     // Add the predefined functions to the symbolTable
     insertSymbol(input, ScopeType.GLOBAL.ordinal());
@@ -96,7 +102,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     // only parameter of a function)
     if (dec.name != null) {
       indent(level);
-      System.out.println("Inserting symbol (" + dec + ")");
+      log("Inserting symbol (" + dec + ")");
     }
   }
 
@@ -160,7 +166,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
           // parameter of a function)
           if (current.name != null) {
             indent(level);
-            System.out.println("Removing Symbol: (" + current + ")");
+            log("Removing Symbol: (" + current + ")");
           }
 
           // Remove the symbol from the list
@@ -328,12 +334,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
     return hasReturn;
   }
 
-  // Generic error message
+  // Generic error message, this should be printed no matter if silent is true or false
   private void error(int row, int col, String message) {
     System.err.println("\nError at line " + (row + 1) + ":" + (col + 1) + " - " + message);
     System.err.println();
   }
-
+  
+  // Generic warning message, this should not be printed if silent is true
   private void warn(int row, int col, String message) {
     System.err.println("\nWarning at line " + (row + 1) + ":" + (col + 1) + " - " + message);
     System.err.println();
@@ -355,15 +362,20 @@ public class SemanticAnalyzer implements AbsynVisitor {
   /* ----------------- Visitor Methods and Helpers ----------------- */
 
   private void enterScope(String msg) {
-    System.out.println("Entering new scope: (" + msg + ")");
+    log("Entering new scope: (" + msg + ")");
   }
 
   private void exitScope(String msg) {
-    System.out.println("Exiting scope: (" + msg + ")");
+    log("Exiting scope: (" + msg + ")");
+  }
+
+  private void log (String msg) {
+    if (!silent) System.out.println(msg);
   }
 
   // Indent based on current scope level
   private void indent(int level) {
+    if (silent) return;
     for (int i = 0; i < SPACES * level; i++) {
       System.out.print("  ");
     }
@@ -393,7 +405,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     // Set the visibility of the array declaration based on the current scope level
-    if (level > ScopeType.GLOBAL.ordinal()) {
+    if (level - 1 > ScopeType.GLOBAL.ordinal()) {
       decArr.nestLevel = ScopeType.LOCAL.ordinal();
     } else {
       decArr.nestLevel = ScopeType.GLOBAL.ordinal();
@@ -567,8 +579,14 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
   public void visit(CondExp exp, int level, boolean isAddr) {
     // We must check if the condition is either an integer or a boolean
-    if ((exp.dtype.type.type != Type.INT && exp.dtype.type.type != Type.BOOL) || exp.dtype == null) {
+    if (exp.dtype == null) {
+      error(exp.row, exp.col, "Invalid conditional expression: NULL");
+      return;
+    }
+    
+    if ((exp.dtype.type.type != Type.INT && exp.dtype.type.type != Type.BOOL)) {
       error(exp.row, exp.col, "Invalid condition type: " + exp.dtype.type);
+      return;
     }
   }
 
@@ -846,7 +864,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     // Set the visibility of the simple declaration based on the current scope level
-    if (level > ScopeType.GLOBAL.ordinal()) {
+    if (level - 1 > ScopeType.GLOBAL.ordinal()) {
       dec.nestLevel = ScopeType.LOCAL.ordinal();
     } else {
       dec.nestLevel = ScopeType.GLOBAL.ordinal();

@@ -61,16 +61,19 @@ public class CM {
       }
 
       if (flags.contains(Flag.SEMANTIC)) {
-        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        boolean silent = false;
+        SemanticAnalyzer analyzer = new SemanticAnalyzer(silent);
         analyzer.analyze(result);
       }
 
       if (flags.contains(Flag.CODEGEN)) {
+        boolean silent = true;
+        // Need to run semantic analysis before code generation to ensure all variables are declared and nest levels are correct
+        SemanticAnalyzer analyzer = new SemanticAnalyzer(silent);
+        analyzer.analyze(result);
         CodeGenerator generator = new CodeGenerator();
         generator.visit(result, args[0]);
       }
-
-      System.out.println("\nParsing completed");
 
     } catch (Exception e) {
       e.printStackTrace();
